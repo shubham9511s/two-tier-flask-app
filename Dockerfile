@@ -1,25 +1,31 @@
-# Use an official Python runtime as the base image
-FROM python:3.9-slim
+# ------------------- Stage 1: Build Stage ------------------------------
+    FROM python:3.9 AS builder
 
-# Set the working directory in the container
-WORKDIR /app
-
-# install required packages for system
-RUN apt-get update \
-    && apt-get upgrade -y \
-    && apt-get install -y gcc default-libmysqlclient-dev pkg-config \
-    && rm -rf /var/lib/apt/lists/*
-
-# Copy the requirements file into the container
-COPY requirements.txt .
-
-# Install app dependencies
-RUN pip install mysqlclient
-RUN pip install --no-cache-dir -r requirements.txt
-
-# Copy the rest of the application code
-COPY . .
-
-# Specify the command to run your application
-CMD ["python", "app.py"]
-
+    # Set the working directory to /app
+    WORKDIR /app
+    
+    # Copy the contents of the backend directory into the container at /app
+    COPY . .
+    
+    # Install dependencies specified in requirements.txt
+    RUN pip install --no-cache-dir -r requirements.txt
+    
+    # ------------------- Stage 2: Final Stage ------------------------------
+    
+    # Use a slim Python 3.9 image as the final base image
+    FROM python:3.9-slim-buster
+    
+    # Set the working directory to /app
+    WORKDIR /app
+    
+    # Copy the built dependencies from the backend-builder stage
+    COPY --from=builder /usr/local/lib/python3.9/site-packages/ /usr/local/lib/python3.9/site-packages/
+    
+    # Copy the application code from the backend-builder stage
+    COPY --from=builder /app /app
+    
+    # Expose port 5000 for the Flask application
+    EXPOSE 5000
+    
+    # Define the default command to run the application
+    CMD ["python", "app.py"]
