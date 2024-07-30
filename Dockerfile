@@ -6,6 +6,12 @@
     
     # Copy the contents of the backend directory into the container at /app
     COPY . .
+
+    # Install the necessary MySQL client libraries
+     RUN apt-get update && \
+     apt-get install -y libmariadb-dev && \
+     apt-get clean && \
+     rm -rf /var/lib/apt/lists/*
     
     # Install dependencies specified in requirements.txt
     RUN pip install --no-cache-dir -r requirements.txt
